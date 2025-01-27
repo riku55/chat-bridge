@@ -2,6 +2,7 @@ import asyncio
 import config
 import os
 import requests
+import discord
 import time
 from nextcloud_helper import upload_to_nextcloud, create_share_link
 from context import context
@@ -38,17 +39,18 @@ async def discord_message_handler(author, message, attachments):
     print(f"Prepared {len(files_to_upload)} images")
 
     await send_telegram_message(telegram_message, files_to_upload)
-    send_irc_message(author, irc_message, attachment_urls)
+    send_irc_message("Discord", author, irc_message, attachment_urls)
 
 
 async def telegram_message_handler(author, message, attachments):
-    print(f"Received telegram message from {author}: {message}")
+
     new_message = f"Telegram/{author}: {message}"
 
     bot = context.get_telegram_bot()
 
     attachments_list = []
     public_urls = []
+    file_paths = []
 
     if attachments:
 
@@ -58,28 +60,46 @@ async def telegram_message_handler(author, message, attachments):
         else:
             attachments_list.append(attachments)
 
+        print(f"Received telegram message from {author}: {message} with {len(attachments_list)} attachments")
+
         for attachment in attachments_list:
 
             timestamp = str(int(time.time() * 1000))
 
             file_path = await bot.download_media(attachment, file=f"{tmp_dir}/{timestamp}")
+            file_paths.append(file_path)
             nextcloud_file_path = upload_to_nextcloud(file_path)
             nextcloud_public_url = create_share_link(nextcloud_file_path)
             public_urls.append(nextcloud_public_url)
+    
+    else:
+        print(f"Received telegram message from {author}: {message} without attachments")
 
 
-    await send_discord_message(new_message)
+    await send_discord_message(new_message, file_paths)
     send_irc_message("Telegram", author, new_message, public_urls)
 
 async def irc_message_handler(author, message):
     print(f"Received irc message from {author}: {message}")
     new_message = f"IRC/{author}: {message}"
-    await asyncio.gather(send_telegram_message(new_message), send_discord_message(new_message))
+    await asyncio.gather(send_telegram_message(new_message, []), send_discord_message(new_message, []))
 
 
-async def send_discord_message(message):
+async def send_discord_message(message, file_paths):
+
     channel = context.get_discord_bot().get_channel(config.DISCORD_CHANNEL_ID)
-    await channel.send(message)
+    discord_files = []
+
+    try:
+        for file_path in file_paths:
+            with open(file_path, "rb") as file:
+                discord_file = discord.File(file, filename = os.path.basename(file_path))
+                discord_files.append(discord_file)
+
+        await channel.send(content = message, files = discord_files)
+
+    except Exception as e:
+        print(f"Error sending files to Discord: {e}")
 
 async def send_telegram_message(message, cached_files):
 

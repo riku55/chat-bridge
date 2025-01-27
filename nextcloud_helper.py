@@ -1,5 +1,6 @@
 import os
 import config
+import posixpath
 from nc_py_api import Nextcloud
 
 nc = Nextcloud(
@@ -12,7 +13,7 @@ folder_path = '/chat_bridge_cache'
 def upload_to_nextcloud(file):
 
     file_name = os.path.basename(file)
-    dest_path = os.path.join(folder_path, file_name)
+    dest_path = posixpath.join(folder_path, file_name)
     with open(file, 'rb') as file_data:
         file_object = nc.files.upload_stream(
             path = dest_path,

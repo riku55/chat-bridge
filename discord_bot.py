@@ -20,7 +20,7 @@ async def on_message(message):
     if message.author == bot.user or message.channel.id != config.DISCORD_CHANNEL_ID:
         return
         
-    await discord_message_handler(message.author, message.content)
+    await discord_message_handler(message.author, message.content, message.attachments)
 
 async def run_discord_bot():
 
