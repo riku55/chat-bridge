@@ -1,4 +1,6 @@
 discord.py
-telethon
 irc
+nc_py_api
 python-dotenv
+requests
+telethon

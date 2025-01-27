@@ -27,7 +27,7 @@ async def run_telegram_bot():
                 message_text = event.message.text
                 sender = await event.get_sender()
                 author = sender.username or sender.first_name or 'Unknown'
-                await telegram_message_handler(author, message_text)
+                await telegram_message_handler(author, message_text, event.media)
 
             print("Telegram bot is running")
             await bot.run_until_disconnected()
